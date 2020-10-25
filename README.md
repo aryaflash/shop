@@ -1,2 +1,5 @@
 # shop
-basic items module and customer register and login
+custom user
+login
+cart
+items
