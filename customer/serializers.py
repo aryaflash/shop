@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Customer
+from .models import Customer, Cart
 
 class CustomerRegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(style = {'input_type' : 'password'}, write_only = True)
@@ -10,6 +10,7 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password' : {'write_only' : True}
         }
+
 
     def save(self):
         password =self.validated_data['password']
@@ -25,8 +26,15 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
             town = self.validated_data['town'],
             state = self.validated_data['state'],
             zipcode = self.validated_data['zipcode'],
-            password = self.validated_data['password']
         )
+        customer.set_password(self.validated_data['password'])
         customer.save()
 
         return customer
+
+
+class CartSerializer(serializers.ModelSerializer):
+    customer = serializers.ReadOnlyField(source = 'customer.phoneNumber')
+    class Meta:
+        model = Cart
+        fields = ['customer', 'item_id', 'quantity', 'purchased']

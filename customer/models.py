@@ -34,8 +34,8 @@ class CustomerManager(BaseUserManager):
             town = town,
             state = state,
             zipcode = zipcode,
-            password = password
             )
+
         user.set_password(password)
         user.save(using = self._db)
         return user
@@ -95,7 +95,7 @@ class Customer(AbstractBaseUser):
     is_superuser = models.BooleanField(default = False)
 
     USERNAME_FIELD = 'phoneNumber'
-    REQUIRED_FIELDS = ['username', 'email', 'address', 'town', 'state', 'zipcode', 'password']
+    REQUIRED_FIELDS = ['username', 'email', 'address', 'town', 'state', 'zipcode']
 
     objects = CustomerManager()
 
@@ -115,3 +115,10 @@ class Customer(AbstractBaseUser):
 def create_auth_token(sender, instance = None, created = False, **kwargs):
     if created:
         Token.objects.create(user = instance)
+
+
+class Cart(models.Model):
+    customer = models.ForeignKey(Customer, on_delete = models.CASCADE, related_name = "cart")
+    item_id = models.IntegerField()
+    quantity = models.IntegerField(default = 0)
+    purchased = models.BooleanField(default = False)
