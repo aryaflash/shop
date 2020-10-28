@@ -25,7 +25,7 @@ SECRET_KEY = 'z_-i-0-1)0v=1npt+3+7^866ol#s2w2lf1ioi7esulfs_r9cb)'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -95,7 +95,7 @@ DATABASES = {
         'NAME' : 'shop',
         'USER' : 'postgres',
         'PASSWORD' : 'Welcome123',
-        'HOST' : 'database-1.cqgy531yuxug.us-east-2.rds.amazonaws.com',
+        'HOST' : 'database-1.cuefrihqhko8.ap-south-1.rds.amazonaws.com',
         'PORT' : '5432'
     }
 }

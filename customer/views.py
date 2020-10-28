@@ -11,6 +11,7 @@ from rest_framework.decorators import permission_classes
 # Create your views here.
 
 class CustomerRegister(APIView):
+    permission_classes = []
     def post(self, request, format = None):
         serializer = CustomerRegisterSerializer(data = request.data)
         rdata = {}
