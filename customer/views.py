@@ -8,6 +8,15 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsOwner, IsCustomer
 from rest_framework.decorators import permission_classes
+from django.core.mail import send_mail
+from dotenv import load_dotenv
+from django.http import Http404
+from django.core.exceptions import ValidationError
+load_dotenv()
+import os
+import random
+
+
 # Create your views here.
 
 class CustomerRegister(APIView):
@@ -95,3 +104,59 @@ class CustomerCartList(APIView):
         serializer = CartSerializer(cart, many = True)
         return Response(serializer.data)
         
+
+class CustomerPasswordReset(APIView):
+    permission_classes = []
+    def random_num_gen(self):
+        x = ""
+        for i in range(0,6):
+            x += str(random.randint(0, 9))
+        return x
+
+    def post(self, request, format = None):
+        email = request.data['email']
+        try:
+            customer =  Customer.objects.get(email = email)
+        except Customer.DoesNotExist:
+            raise Http404
+        code = self.random_num_gen()
+        send_mail('Password Reset', code, os.environ.get('EMAIL_HOST_USER'), [email], fail_silently = False)
+        customer.password_reset_code = code
+        customer.save()
+        return Response({'data' : 'code has been sent to gmail to reset password',
+                        'email' : email})
+
+class CustomerCodeCheck(APIView):
+    permission_classes = []
+    def post(self, request, format = None):
+        email = request.data['email']
+        try:
+            customer = Customer.objects.get(email = email)
+        except Customer.DoesNotExist:
+            raise Http404
+        if customer.password_reset_code != request.data['code']:
+            return Response({'error':'please enter correct code'})
+        return Response({'data' : 'code verified','email' : email, 'code' : request.data['code']})
+
+
+class CustomerNewPassword(APIView):
+    permission_classes = []
+    def post(self, request, format = None):
+        email = request.data['email']
+        code = request.data['code']
+        try:
+            customer = Customer.objects.get(email = email)
+        except Customer.DoesNotExist:
+            raise Http404
+        if customer.password_reset_code != code:
+            return Response({'data' : 'code authentication error'})
+        password = request.data['password']
+        password2 = request.data['password2']
+        if password != password2:
+            raise ValidationError({'password' : 'passwords do not match'})
+        customer.password_reset_code = ""
+        customer.set_password(password)
+        customer.save()
+        return Response({'data' : 'password successfully changed'})
+
+

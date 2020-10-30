@@ -26,6 +26,8 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
             town = self.validated_data['town'],
             state = self.validated_data['state'],
             zipcode = self.validated_data['zipcode'],
+            password_reset_code = self.validated_data['password_reset_code'],
+                
         )
         customer.set_password(self.validated_data['password'])
         customer.save()

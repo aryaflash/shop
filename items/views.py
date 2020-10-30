@@ -7,6 +7,7 @@ from django.http import Http404
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.filters import SearchFilter, OrderingFilter
+                   #for python-dotenv method
 
 class ItemList(generics.ListCreateAPIView):
     queryset = Item.objects.all()

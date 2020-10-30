@@ -26,6 +26,9 @@ urlpatterns = [
     #only respected users can access
     #list of items in respective carts
     path('shop/customer/cart/', views.CustomerCartList.as_view(), name = 'CustomerCart_List'),
-    
+    path('shop/customer/reset/', views.CustomerPasswordReset.as_view(), name = "Customer_Password_Reset"),
+    path('shop/customer/code/', views.CustomerCodeCheck.as_view(), name = 'Customer_Code_Check'),
+    path('shop/customer/rpass/', views.CustomerNewPassword.as_view(), name = 'Customer_New_Password'),
+
     
 ]
