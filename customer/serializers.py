@@ -15,28 +15,27 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
     def save(self):
         password =self.validated_data['password']
         password2 = self.validated_data['password2']
-
         if password != password2:
             raise serializers.ValidationError({'password':'passwords donot match'})
         customer = Customer(
             username = self.validated_data['username'],
-            email = self.validated_data['email'],
-            phoneNumber = self.validated_data['phoneNumber'],
-            address = self.validated_data['address'],
-            town = self.validated_data['town'],
-            state = self.validated_data['state'],
-            zipcode = self.validated_data['zipcode'],
-            password_reset_code = self.validated_data['password_reset_code'],
-                
+            email = self.validated_data['email'],                
         )
         customer.set_password(self.validated_data['password'])
         customer.save()
 
         return customer
 
+class CustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ['username', 'email', 'phoneNumber', 'address', 'town', 'state', 'zipcode']
+
+
+
 
 class CartSerializer(serializers.ModelSerializer):
-    customer = serializers.ReadOnlyField(source = 'customer.phoneNumber')
+    customer = serializers.ReadOnlyField(source = 'customer.email')
     class Meta:
         model = Cart
         fields = ['customer', 'item_id', 'quantity', 'purchased']

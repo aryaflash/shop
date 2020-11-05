@@ -8,64 +8,34 @@ from rest_framework.authtoken.models import Token
 # Create your models here.
 
 class CustomerManager(BaseUserManager):
-    def create_user(self, username, email, phoneNumber, address, town, state, zipcode, password = None ):
+    def create_user(self, username, email, password = None ):
         if not username:
             raise ValueError("USers must have username")
         if not email:
             raise ValueError("USers must have email")
-        if not phoneNumber:
-            raise ValueError("USers must have phoneNumber")
-        if not address:
-            raise ValueError("USers must have address")
-        if not town:
-            raise ValueError("USers must have town")
-        if not state:
-            raise ValueError("USers must have state")
-        if not zipcode:
-            raise ValueError("USers must have zipcode")
         if not password:
             raise ValueError("USers must have password")
         
         user = self.model(
             username = username,
             email = self.normalize_email(email),
-            phoneNumber = phoneNumber,
-            address = address,
-            town = town,
-            state = state,
-            zipcode = zipcode,
             )
 
         user.set_password(password)
         user.save(using = self._db)
         return user
     
-    def create_superuser(self, username, email, phoneNumber, address, town, state, zipcode, password):
+    def create_superuser(self, username, email, password):
         if not username:
             raise ValueError("USers must have username")
         if not email:
             raise ValueError("USers must have email")
-        if not phoneNumber:
-            raise ValueError("USers must have phoneNumber")
-        if not address:
-            raise ValueError("USers must have address")
-        if not town:
-            raise ValueError("USers must have town")
-        if not state:
-            raise ValueError("USers must have state")
-        if not zipcode:
-            raise ValueError("USers must have zipcode")
         if not password:
             raise ValueError("USers must have password")
 
         user = self.create_user(
             username = username,
             email = self.normalize_email(email),
-            phoneNumber = phoneNumber,
-            address = address,
-            town = town,
-            state = state,
-            zipcode = zipcode,
             password = password
             )
         
@@ -81,13 +51,13 @@ class CustomerManager(BaseUserManager):
 
 class Customer(AbstractBaseUser):
     username = models.CharField(max_length = 50, blank = False)
-    email = models.EmailField(unique = True, validators = ([EmailValidator]), blank = False)
-    phoneNumber = models.BigIntegerField(unique = True, primary_key = True, blank = False)
-    address = models.CharField(max_length = 50, blank = False)
-    town = models.CharField(max_length = 50, blank = False)
-    state = models.CharField(max_length = 50, blank = False)
-    zipcode = models.IntegerField(blank = False)
-    password_reset_code = models.CharField(max_length = 6, blank = True)
+    email = models.EmailField(unique = True, primary_key = True,validators = ([EmailValidator]), blank = False)
+    phoneNumber = models.BigIntegerField(unique = True, blank = True, default = 0)
+    address = models.CharField(max_length = 50, blank = True, default = "")
+    town = models.CharField(max_length = 50, blank = True, default = "")
+    state = models.CharField(max_length = 50, blank = True, default = "")
+    zipcode = models.IntegerField(blank = True, default = 0)
+    password_reset_code = models.CharField(max_length = 6, blank = True, default = "")
     date_joined = models.DateTimeField(auto_now_add = True)
     last_login = models.DateTimeField(auto_now = True)
     is_admin = models.BooleanField(default = False)
@@ -96,8 +66,8 @@ class Customer(AbstractBaseUser):
     is_superuser = models.BooleanField(default = False)
 
 
-    USERNAME_FIELD = 'phoneNumber'
-    REQUIRED_FIELDS = ['username', 'email', 'address', 'town', 'state', 'zipcode']
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
 
     objects = CustomerManager()
 

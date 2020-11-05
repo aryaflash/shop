@@ -1,11 +1,11 @@
 from rest_framework.response import Response
 from rest_framework.views import  APIView
-from .serializers import CustomerRegisterSerializer, CartSerializer
+from .serializers import CustomerRegisterSerializer, CartSerializer, CustomerSerializer
 from .models import Customer, Cart
 from rest_framework import generics
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .permissions import IsOwner, IsCustomer
 from rest_framework.decorators import permission_classes
 from django.core.mail import send_mail
@@ -28,7 +28,7 @@ class CustomerRegister(APIView):
             customer = serializer.save()
             rdata['response'] = "successfully registered user"
             rdata['name'] = customer.username
-            rdata['phoneNumber'] = customer.phoneNumber
+            rdata['email'] = customer.email
             token = Token.objects.get(user = customer).key
             rdata['token'] = token
         else:
@@ -54,21 +54,20 @@ class SuperUserList(APIView):
     
 
 class CustomerDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Customer.objects.all()
-    serializer_class = CustomerRegisterSerializer
-    permission_classes = [IsAuthenticated, IsCustomer]
-
+    serializer_class = CustomerSerializer
+    
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data = request.data, context = {'request' : request})
         serializer.is_valid(raise_exception = True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user = user)
-        print(user)
         return Response({
-            'token'    : token.key,
-            'user_id'  : user.pk,
+            'email'  : user.pk,
             'username' : user.username,
+            'token'    : token.key,
             'message'  : 'login successful'
 
         })
@@ -159,4 +158,4 @@ class CustomerNewPassword(APIView):
         customer.save()
         return Response({'data' : 'password successfully changed'})
 
-
+    
