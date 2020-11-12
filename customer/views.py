@@ -12,6 +12,7 @@ from django.core.mail import send_mail
 from dotenv import load_dotenv
 from django.http import Http404
 from django.core.exceptions import ValidationError
+from rest_framework import status
 load_dotenv()
 import os
 import random
@@ -23,40 +24,72 @@ class CustomerRegister(APIView):
     permission_classes = []
     def post(self, request, format = None):
         serializer = CustomerRegisterSerializer(data = request.data)
-        rdata = {}
+        values = {}
         if serializer.is_valid():
             customer = serializer.save()
-            rdata['response'] = "successfully registered user"
-            rdata['name'] = customer.username
-            rdata['email'] = customer.email
+            values['response'] = "successfully registered user"
+            values['name'] = customer.username
+            values['email'] = customer.email
             token = Token.objects.get(user = customer).key
-            rdata['token'] = token
+            values['token'] = token
+            data = [{'status' : status.HTTP_200_OK, 'values' : values, 'message' : 'OK'}]
+            return Response(data)
         else:
-            rdata = serializer.errors
-        return Response(rdata)
+            values = serializer.errors
+            data = [{'status' : status.HTTP_400_BAD_REQUEST, 'values' : values, 'message' : 'DATA NOT VALID'}]
+        return Response()
     
 class CustomerList(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, format = None):
         if request.user.is_superuser == False:
-            return Response({'error' : 'you dont have permission'})
+            data = [{'status' : status.HTTP_401_UNAUTHORIZED, 'values' : [], 'message' : 'UNAUTHORIZED'}]
+            return Response(data)
         customer = Customer.objects.filter(is_superuser = False)
         serializer = CustomerRegisterSerializer(customer, many = True)
-        return Response(serializer.data)
+        data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+        return Response(data)
 
 class SuperUserList(APIView):
     def get(self, request, format = None):
         if request.user.is_superuser == False:
-            return Response({'error' : 'you dont have permission'})
+            data = [{'status' : status.HTTP_401_UNAUTHORIZED, 'values' : [], 'message' : 'UNAUTHORIZED'}]
+            return Response(data)
         customer = Customer.objects.filter(is_superuser = True)
         serializer = CustomerRegisterSerializer(customer, many = True)
-        return Response(serializer.data)
+        data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+        return Response(data)
     
 
-class CustomerDetail(generics.RetrieveUpdateDestroyAPIView):
+class CustomerDetail(APIView):
     permission_classes = [IsAuthenticated]
-    queryset = Customer.objects.all()
-    serializer_class = CustomerSerializer
+    def get_object(self, pk):
+        try:
+            return Customer.objects.get(pk = pk)
+        except Customer.DoesNotExist:
+            raise Http404
+    
+    def get(self, request, pk, format = None):
+        customer = self.get_object(pk)
+        serializer = CustomerSerializer(customer)
+        data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+        return Response(data)
+
+    def put(self, request, pk, format = None):
+        customer =  self.get_object(pk)
+        serializer = CustomerSerializer(instance = customer, data = request.data)
+        if serializer.is_valid():
+            serializer.save()
+            data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+            return Response(data)
+        data = [{'status' : status.HTTP_400_BAD_REQUEST, 'values' : [], 'message' : 'DATA NOT VALID'}]
+        return Response(data = data)
+
+    def delete(self, request, pk, format = None):
+        customer = self.get_object(pk = pk)
+        customer.delete()
+        data = [{'status' : status.HTTP_204_NO_CONTENT, 'values' : [], 'message' : 'DELETED'}]
+        return Response(data)
     
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
@@ -64,19 +97,26 @@ class CustomAuthToken(ObtainAuthToken):
         serializer.is_valid(raise_exception = True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user = user)
-        return Response({
+        values = [{
             'email'  : user.pk,
             'username' : user.username,
             'token'    : token.key,
-            'message'  : 'login successful'
+            }]
+        data = [{'status' : status.HTTP_200_OK, 'values' : values, 'message' : 'OK'}]
+        return Response(data = data)
 
-        })
 
-
-class CartCreate(generics.CreateAPIView):
-    queryset = Cart.objects.all()
-    serializer_class = CartSerializer
+class CartCreate(APIView):
     permission_classes = [IsAuthenticated, IsOwner]
+
+    def post(self, request, format = None):
+        serializer = CartSerializer(data = request.data)
+        if serializer.is_valid():
+            serializer.save()
+            data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+            return Response(data)
+        data = [{'status' : status.HTTP_400_BAD_REQUEST, 'values' : [], 'message' : 'DATA NOT VALID'}]
+        return Response(data = data)
 
     def perform_create(self, serializer):
         serializer.save(customer = self.request.user)
@@ -85,23 +125,53 @@ class CartList(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, format = None):
         if request.user.is_superuser == False:
-            return Response({'error' : 'you dont have permission'})
+            data = [{'status' : status.HTTP_401_UNAUTHORIZED, 'values' : [], 'message' : 'UNAUTHORIZED'}]
+            return Response(data)
         cart = Cart.objects.all()
         serializer = CartSerializer(cart, many = True)
-        return Response(serializer.data)
+        data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+        return Response(data)
 
 
-class CartDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Cart.objects.all()
-    serializer_class = CartSerializer
+class CartDetail(APIView):
     permission_classes = [IsAuthenticated, IsOwner]
+    def get_object(self, pk):
+        try:
+            return Cart.objects.get(customer = pk)
+        except Cart.DoesNotExist:
+            raise Http404
+    
+    def get(self, request, pk, format = None):
+        cart = self.get_object(pk)
+        serializer = CartSerializer(cart)
+        data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+        return Response(data)
+
+    def put(self, request, pk, format = None):
+        cart =  self.get_object(pk)
+        serializer = CartSerializer(instance = cart, data = request.data)
+        if serializer.is_valid():
+            serializer.save()
+            data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+            return Response(data)
+        data = [{'status' : status.HTTP_400_BAD_REQUEST, 'values' : [], 'message' : 'DATA NOT VALID'}]
+        return Response(data = data)
+
+    def delete(self, request, pk, format = None):
+        cart = self.get_object(pk = pk)
+        cart.delete()
+        data = [{'status' : status.HTTP_204_NO_CONTENT, 'values' : [], 'message' : 'DELETED'}]
+        return Response(data)
+    
 
 class CustomerCartList(APIView):
     permission_classes = [IsAuthenticated, IsOwner]
     def get(self, request, format = None):
         cart = Cart.objects.filter(customer = request.user)
+        print(request.user)
         serializer = CartSerializer(cart, many = True)
-        return Response(serializer.data)
+        data = [{'status' : status.HTTP_200_OK, 'values' : serializer.data, 'message' : 'OK'}]
+        return Response(data)
         
 
 class CustomerPasswordReset(APIView):
@@ -122,8 +192,8 @@ class CustomerPasswordReset(APIView):
         send_mail('Password Reset', code, os.environ.get('EMAIL_HOST_USER'), [email], fail_silently = False)
         customer.password_reset_code = code
         customer.save()
-        return Response({'data' : 'code has been sent to gmail to reset password',
-                        'email' : email})
+        data = [{'status' : status.HTTP_200_OK, 'values' : [{'email' : email}], 'message' : 'code has been sent to gmail to reset password'}]
+        return Response(data = data)
 
 class CustomerCodeCheck(APIView):
     permission_classes = []
@@ -134,8 +204,11 @@ class CustomerCodeCheck(APIView):
         except Customer.DoesNotExist:
             raise Http404
         if customer.password_reset_code != request.data['code']:
-            return Response({'error':'please enter correct code'})
-        return Response({'data' : 'code verified','email' : email, 'code' : request.data['code']})
+            data = [{'status' : status.HTTP_400_BAD_REQUEST, 'values' : [], 'message' : 'WRONG CODE'}]
+            return Response(data)
+        values = {'email' : email, 'code' : request.data['code']}
+        data = [{'status' : status.HTTP_200_OK, 'values' : values, 'message' : 'OK'}]
+        return Response(data = data)
 
 
 class CustomerNewPassword(APIView):
@@ -148,7 +221,8 @@ class CustomerNewPassword(APIView):
         except Customer.DoesNotExist:
             raise Http404
         if customer.password_reset_code != code:
-            return Response({'data' : 'code authentication error'})
+            data = [{'status' : status.HTTP_400_BAD_REQUEST, 'values' : [], 'message' : 'WRONG CODE'}]
+            return Response(data)
         password = request.data['password']
         password2 = request.data['password2']
         if password != password2:
@@ -156,6 +230,6 @@ class CustomerNewPassword(APIView):
         customer.password_reset_code = ""
         customer.set_password(password)
         customer.save()
-        return Response({'data' : 'password successfully changed'})
-
-    
+        data = [{'status' : status.HTTP_201_CREATED, 'values' : [], 'message' : 'OK'}]
+        return Response(data = data)
+        

@@ -13,13 +13,13 @@ class CustomerRegisterSerializer(serializers.ModelSerializer):
 
 
     def save(self):
-        password =self.validated_data['password']
+        password = self.validated_data['password']
         password2 = self.validated_data['password2']
         if password != password2:
             raise serializers.ValidationError({'password':'passwords donot match'})
         customer = Customer(
             username = self.validated_data['username'],
-            email = self.validated_data['email'],                
+            email = self.validated_data['email'],         
         )
         customer.set_password(self.validated_data['password'])
         customer.save()
